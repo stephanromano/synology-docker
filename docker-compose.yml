@@ -1,0 +1,117 @@
+---
+version: "3.7"
+services:
+
+  swag:
+    image: ghcr.io/linuxserver/swag
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1045
+      - PGID=100
+      - TZ=America/New York
+      - URL=ds.bnry.io
+      - SUBDOMAINS=wildcard
+      - VALIDATION=dns
+      - DNSPLUGIN=cloudflare #optional
+      - EMAIL=binaryvisions@gmail.com
+    volumes:
+      - /volume1/docker/swag/config:/config
+    ports:
+      - 9443:443
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  radarr:
+    image: ghcr.io/linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=1042
+      - PGID=100
+      - TZ=America/New York
+      - UMASK_SET=022 #optional
+    volumes:
+      - /volume1/docker/radarr/config:/config
+      - /volume1/media/Movies:/movies
+      - /volume1/downloads/torrents:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=1042
+      - PGID=100
+      - TZ=America/New York
+      - UMASK_SET=022 #optional
+    volumes:
+      - /volume1/docker/sonarr/config:/config
+      - /volume1/media/TV Shows:/tv
+      - /volume1/downloads/torrents:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  jackett:
+    image: ghcr.io/linuxserver/jackett
+    container_name: jackett
+    environment:
+      - PUID=1042
+      - PGID=100
+      - TZ=America/New York
+      - AUTO_UPDATE=true #optional
+      - RUN_OPTS=<run options here> #optional
+    volumes:
+      - /volume1/docker/jackett/config:/config
+      - /volume1/docker/jackett/download:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  photostructure:
+    image: photostructure/server
+    container_name: photostructure
+    restart: unless-stopped
+    stop_grace_period: 2m
+    user: 1044:100
+    volumes:
+      - type: bind
+        source: /volume1/docker/photostructure/library
+        target: /ps/library
+      - type: bind
+        source: /volume1/docker/photostructure/tmp
+        target: /ps/tmp
+      - type: bind
+        source: /volume1/docker/photostructure/config
+        target: /ps/config
+      - type: bind
+        source: /volume1/docker/photostructure/logs
+        target: /ps/logs
+      - type: bind
+        source: /volume1/photos
+        target: /var/photos
+    ports:
+      - 1787:1787/tcp
+    environment:
+      - "PS_EXPOSE_NETWORK_WITHOUT_AUTH=true"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600
+    environment:
+      - "WATCHTOWER_LABEL_ENABLE=true"
